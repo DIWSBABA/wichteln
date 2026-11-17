@@ -1,0 +1,175 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Das Geheimnis des O/24/1 Kurses</title>
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;min-height:100vh;color:#f5e7c0;
+ background:radial-gradient(ellipse at top,#183525,#07100c 65%);
+ font-family:Georgia,serif;text-align:center;overflow-x:hidden;
+}
+.snow{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.snow span{position:absolute;top:-20px;color:white;animation:fall linear infinite;opacity:.6}
+@keyframes fall{to{transform:translateY(110vh) rotate(360deg)}}
+main{position:relative;max-width:850px;margin:auto;padding:65px 20px}
+h1{font-size:clamp(36px,7vw,65px);font-weight:normal;color:#e6c77d;text-shadow:0 0 25px #d6ae5555}
+.subtitle{letter-spacing:3px;color:#b9b5a5;font-size:13px}
+.panel{margin-top:45px;padding:35px 20px;border:1px solid #a98b4e;border-radius:18px;background:#0c1b13e8;box-shadow:0 20px 70px #0008}
+h2{font-weight:normal;color:#e6c77d}
+.gift{font-size:85px;margin:25px;animation:float 3s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-12px) rotate(4deg)}}
+button{background:linear-gradient(135deg,#e8cf91,#a9813e);border:0;border-radius:30px;padding:15px 25px;color:#152016;font-weight:bold;cursor:pointer;margin:8px;letter-spacing:1px}
+button:hover{filter:brightness(1.15);transform:translateY(-2px)}
+button:disabled{opacity:.4;cursor:not-allowed}
+.secondary{background:transparent;color:#e6c77d;border:1px solid #a98b4e}
+#status{color:#e6c77d;min-height:25px;margin:20px}
+table{width:100%;border-collapse:collapse;margin-top:20px;font-family:Arial,sans-serif}
+td,th{padding:13px;border-bottom:1px solid #a98b4e55;text-align:left}
+th{color:#d9b86f;font-size:12px}
+td:last-child{color:#e6c77d;font-weight:bold}
+#results{display:none;margin-top:35px}
+.note{color:#aaa;font:12px Arial,sans-serif;line-height:1.6;margin-top:25px}
+</style>
+</head>
+<body>
+<div class="snow" id="snow"></div>
+<main>
+ <div class="subtitle">✦ THE CHRISTMAS EDITION ✦</div>
+ <h1>Das Geheimnis des<br>O/24/1 Kurses</h1>
+ <p class="subtitle">17 NAMEN. 17 GEHEIMNISSE. EIN WEIHNACHTSFEST.</p>
+
+ <section class="panel">
+  <h2>Die große Wichtelauslosung</h2>
+  <p class="subtitle">Ein kleines Geheimnis wartet auf euch ...</p>
+  <div class="gift" id="gift">🎁</div>
+  <div id="status">Bereit für die Auslosung?</div>
+  <button id="draw">✦ AUSLOSUNG STARTEN ✦</button>
+  <button class="secondary" id="export" disabled>CSV EXPORTIEREN</button>
+
+  <div id="results">
+   <h2>Die goldene Wichtelliste</h2>
+   <table>
+    <thead><tr><th>NR.</th><th>WICHTEL</th><th>BESCHENKT</th></tr></thead>
+    <tbody id="list"></tbody>
+   </table>
+   <button class="secondary" id="again">NEU AUSLOSEN</button>
+  </div>
+  <p class="note">Die Zuordnung wird lokal in diesem Browser gespeichert. Sichere sie zusätzlich über den CSV-Export.</p>
+ </section>
+</main>
+
+<script>
+const names=[
+"Mert","Fehmi","Sophia","Bianca","Fabienne",
+"Ayse Gül","Fatma","Alina","Hatice","Melissa",
+"Annika","Jessi","Franzi","Anna Leena","Chiara",
+"Ksyeniya","Björn"
+];
+
+let current=[];
+
+function shuffle(){
+ let result=[...names];
+ for(let i=result.length-1;i>0;i--){
+  let j=Math.floor(Math.random()*(i+1));
+  [result[i],result[j]]=[result[j],result[i]];
+ }
+ return result;
+}
+
+function makeDraw(){
+ let shuffled;
+ do{shuffled=shuffle()}
+ while(shuffled.some((n,i)=>n===names[i]));
+
+ return names.map((giver,i)=>({
+  giver,receiver:shuffled[i]
+ }));
+}
+
+function escapeHTML(s){
+ return s.replace(/[&<>"']/g,c=>({
+  "&":"&amp;","<":"&lt;",">":"&gt;",
+  '"':"&quot;","'":"&#39;"
+ }[c]));
+}
+
+function render(){
+ document.getElementById("list").innerHTML=
+ current.map((r,i)=>`
+ <tr>
+ <td>${i+1}</td>
+ <td>${escapeHTML(r.giver)}</td>
+ <td>${escapeHTML(r.receiver)}</td>
+ </tr>`).join("");
+
+ document.getElementById("results").style.display="block";
+ document.getElementById("export").disabled=false;
+}
+
+function draw(){
+ document.getElementById("draw").disabled=true;
+ document.getElementById("again").disabled=true;
+ document.getElementById("results").style.display="none";
+
+ let count=0;
+ const timer=setInterval(()=>{
+  document.getElementById("gift").textContent=
+   ["🎁","✨","🎄","❄️"][count%4];
+  document.getElementById("status").textContent=
+   ["Die Namen werden gemischt ...",
+    "Das Geheimnis nimmt Gestalt an ...",
+    "Fast geschafft ..."][Math.min(2,Math.floor(count/3))];
+  count++;
+
+  if(count>=12){
+   clearInterval(timer);
+   current=makeDraw();
+   localStorage.setItem("wichtelO241",JSON.stringify(current));
+   render();
+   document.getElementById("gift").textContent="🎁";
+   document.getElementById("status").textContent="Die Auslosung ist abgeschlossen! 🎄";
+   document.getElementById("draw").disabled=false;
+   document.getElementById("again").disabled=false;
+  }
+ },180);
+}
+
+function exportCSV(){
+ const csv="Wichtel;Beschenkt\n"+
+ current.map(r=>r.giver+";"+r.receiver).join("\n");
+ const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"});
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement("a");
+ a.href=url;a.download="wichtelauslosung.csv";a.click();
+ URL.revokeObjectURL(url);
+}
+
+document.getElementById("draw").onclick=draw;
+document.getElementById("again").onclick=draw;
+document.getElementById("export").onclick=exportCSV;
+
+try{
+ const saved=JSON.parse(localStorage.getItem("wichtelO241"));
+ if(Array.isArray(saved)&&saved.length===names.length){
+  current=saved;render();
+  document.getElementById("status").textContent="Gespeicherte Auslosung geladen.";
+ }
+}catch(e){}
+
+for(let i=0;i<45;i++){
+ const f=document.createElement("span");
+ f.textContent="❄";
+ f.style.left=Math.random()*100+"%";
+ f.style.animationDuration=(7+Math.random()*14)+"s";
+ f.style.animationDelay=(-Math.random()*20)+"s";
+ f.style.fontSize=(8+Math.random()*12)+"px";
+ document.getElementById("snow").appendChild(f);
+}
+</script>
+</body>
+</html>
